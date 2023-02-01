@@ -1,0 +1,8 @@
+1. Make Database And Table
+    For:
+        - User
+        - Group
+        - Message
+        - Participant (M2M User-Group)
+
+2. Make Handler for Login And Register

@@ -1,0 +1,52 @@
+{{ define "title" }}Login User{{ end }}
+
+{{ define "content" }}
+<div class="container">
+    <div class="row justify-content-center mt-4">
+        <div class="col-xl-6 col-lg-6 col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="text-center">Register User</h5>
+                    {{ if .flash.Type }}
+                    <div class="alert alert-{{ .flash.Type }} alert-dismissible" role="alert">
+                        {{ .flash.Message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {{ end }}
+                    <form action="" method="post">
+                        <div class="row">
+                            <div class="col-sm-6 form-group mb-2">
+                                <label for="id_first_name">First name*</label>
+                                <input type="text" name="first_name" id="id_first_name" class="form-control" required>
+                            </div>
+                            <div class="col-sm-6 form-group mb-2">
+                                <label for="id_last_name">Last name*</label>
+                                <input type="text" name="last_name" id="id_last_name" class="form-control" required>
+                            </div>
+                            <div class="col-sm-6 form-group mb-2">
+                                <label for="id_first_name">Username*</label>
+                                <input type="text" name="username" id="id_username" class="form-control" required>
+                            </div>
+                            <div class="col-sm-6 form-group mb-2">
+                                <label for="id_first_name">Email*</label>
+                                <input type="email" name="email" id="id_email" class="form-control" required>
+                            </div>
+                            <div class="col-sm-6 form-group mb-2">
+                                <label for="id_password1">Password*</label>
+                                <input type="password" name="password1" id="id_password1" class="form-control" required>
+                            </div>
+                            <div class="col-sm-6 form-group mb-2">
+                                <label for="id_password2">Password confirmation*</label>
+                                <input type="password" name="password2" id="id_password2" class="form-control" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <br>
+                        <span class="text-muted"><a href="/login">I have already a account.</a></span>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

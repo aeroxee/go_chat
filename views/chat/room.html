@@ -1,0 +1,282 @@
+{{ define "title" }}Room - {{ .group.Title }}{{ end }}
+
+{{ define "style" }}
+<style>
+    #chat-box {
+        width: 100%;
+        height: 450px;
+        overflow: auto;
+        margin-bottom: 1rem;
+    }
+
+    #chat-box .left {
+        width: 70%;
+        float: left;
+        border: 1px solid black;
+        padding: 10px;
+        margin-bottom: 1rem;
+        border-bottom-left-radius: .8rem;
+        border-top-left-radius: .8rem;
+        border-top-right-radius: .8rem;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    #chat-box .right {
+        width: 70%;
+        float: right;
+        border: 1px solid black;
+        padding: 10px;
+        margin-bottom: 1rem;
+        border-bottom-right-radius: .8rem;
+        border-top-left-radius: .8rem;
+        border-top-right-radius: .8rem;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    #chat-box .left h1,
+    #chat-box .right h1 {
+        font-size: 14pt;
+    }
+    #chat-box .left p,
+    #chat-box .right p {
+        font-size: 10pt;
+    }
+</style>
+{{ end }}
+
+{{ define "content" }}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-body">
+                    <div id="chat-box">
+                        {{ $userID := .id }}
+                        {{ $userFullName := .full_name }}
+                        {{ range .group.Chats }}
+                            {{ if eq .UserID $userID }}
+                                <div class="right">
+                                    <div>
+                                        <h1>You</h1>
+                                        <p>{{ .Text }}</p>
+                                    </div>
+                                    <span class="text-muted small" id="timestamps" data-time="{{ .CreatedAt.Format "2006-01-02T15:04:05.999999999Z07:00" }}"></span>
+                                </div>
+                            {{ else }}
+                                <div class="left">
+                                    <div>
+                                        <h1>{{ .UserID | getUserFullName }}</h1>
+                                        <p>{{ .Text }}</p>
+                                    </div>
+                                    <span class="text-muted small" id="timestamps" data-time="{{ .CreatedAt.Format "2006-01-02T15:04:05.999999999Z07:00" }}"></span>
+                                </div>
+                            {{ end }}
+                        {{ end }}
+                    </div>
+
+                    <form action="/chat?id={{ .group.ID }}" method="post">
+                        <input type="hidden" name="user_id" id="chat-user-id" value="{{ .id }}">
+                        <input type="hidden" name="group_id" id="chat-group-id" value="{{ .group.ID }}">
+                        <label for="chat-chat-text">Message</label>
+                        <textarea name="text" id="chat-chat-text" class="form-control" autofocus></textarea>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="liveToast" class="toast bg-dark text-white" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-dark text-white">
+<!--            <img src="..." class="rounded me-2" alt="...">-->
+            <strong class="me-auto">New Message</strong>
+            <small>a few second ago</small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            <h6 id="toastTitle"></h6>
+            <div id="toastText"></div>
+        </div>
+    </div>
+</div>
+
+{{ end }}
+
+{{ define "script" }}
+<script>
+    const timestamps = document.querySelectorAll("#timestamps");
+    for (let i = 0; i < timestamps.length; i++) {
+        // setInterval(function() {
+        //     timestamps[i].innerText = timeSince(new Date(timestamps[i].dataset.time));
+        // })
+        let currentTime = timestamps[i].dataset.time;
+        let date = new Date(currentTime);
+        timestamps[i].innerText = moment(date).fromNow();
+    }
+
+    const chatUserID = document.querySelector("#chat-user-id");
+    const chatGroupID = document.querySelector("#chat-group-id");
+    const chatChatText = document.querySelector("#chat-chat-text");
+    let chatBox = document.querySelector("#chat-box");
+
+    const chatSocket = new WebSocket(
+        "ws://"
+        + window.location.host
+        + "/ws?room_id=" + chatGroupID.value
+    )
+
+    chatSocket.onopen = function() {
+        console.log("Connected to websocket");
+    }
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+
+        if (data.user_id === parseInt(chatUserID.value)) {
+            let chat = document.createElement("div")
+            chat.classList.add("right");
+
+            let div = document.createElement("div")
+
+            let h1 = document.createElement("h1")
+            h1.innerText = "You";
+
+            let p = document.createElement("p");
+            p.innerText = data.text;
+
+            let span = document.createElement("span");
+            span.classList.add("text-muted", "small");
+            span.setAttribute("id", "timestamps");
+            let date = new Date(data.timestamp);
+            span.innerText = moment(date).fromNow();
+
+            div.appendChild(h1);
+            div.appendChild(p);
+            chat.appendChild(div);
+            chat.appendChild(span);
+
+            appendLog(chat);
+        } else {
+
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", "/chat?get_full_name_by_user_id="+data.user_id, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            let h1 = document.createElement("h1")
+            xhr.onload = function() {
+                let jsonResponse = xhr.response;
+                h1.innerText = jsonResponse["full_name"];
+                document.querySelector("#toastTitle").innerText = "Message from: " + jsonResponse["full_name"];
+            }
+            xhr.responseType = "json";
+            xhr.send(null);
+
+            let chat = document.createElement("div")
+            chat.classList.add("left");
+
+            let div = document.createElement("div")
+
+            let p = document.createElement("p");
+            p.innerText = data.text;
+
+            let span = document.createElement("span");
+            span.classList.add("text-muted", "small");
+            span.setAttribute("id", "timestamps");
+            let date = new Date(data.timestamp);
+            span.innerText = moment(date).fromNow();
+
+            div.appendChild(h1);
+            div.appendChild(p);
+            chat.appendChild(div);
+            chat.appendChild(span);
+
+            appendLog(chat);
+
+            const toastLiveExample = document.getElementById("liveToast");
+            document.querySelector("#toastText").innerText = data.text;
+            const toast = new bootstrap.Toast(toastLiveExample)
+            toast.show()
+        }
+    }
+
+    chatChatText.addEventListener("keydown", function(e) {
+        // Get the code of pressed key
+        const keyCode = e.which || e.keyCode;
+
+        // 13 represents the Enter key
+        if (keyCode === 13 && !e.shiftKey) {
+            // Don't generate a new line
+            e.preventDefault();
+            let text = this.value;
+            chatSocket.send(JSON.stringify({
+                "user_id": parseInt(chatUserID.value),
+                "text": text,
+            }));
+
+            let data = {
+                user_id: chatUserID.value,
+                group_id: chatGroupID.value,
+                text: chatChatText.value
+            }
+            console.log(data);
+            let formBody = [];
+            for (let v in data) {
+                let encodedKey = encodeURIComponent(v);
+                let encodedValue = encodeURIComponent(data[v]);
+                formBody.push(encodedKey + "=" + encodedValue);
+            }
+            formBody = formBody.join("&");
+            fetch("/chat?id="+chatGroupID.value, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: formBody
+            });
+
+            chatChatText.value = "";
+            chatChatText.focus();
+        }
+    })
+
+    function appendLog(item) {
+        let doScroll = chatBox.scrollTop > chatBox.scrollHeight - chatBox.clientHeight - 1;
+        chatBox.appendChild(item);
+        if (doScroll) {
+            chatBox.scrollTop = chatBox.scrollHeight - chatBox.clientHeight;
+        }
+    }
+
+    function timeSince(date) {
+
+        let seconds = Math.floor((new Date() - date) / 1000);
+
+        let interval = seconds / 31536000;
+
+        if (interval > 1) {
+            return Math.floor(interval) + " years aga";
+        }
+        interval = seconds / 2592000;
+        if (interval > 1) {
+            return Math.floor(interval) + " months ago";
+        }
+        interval = seconds / 86400;
+        if (interval > 1) {
+            return Math.floor(interval) + " days ago";
+        }
+        interval = seconds / 3600;
+        if (interval > 1) {
+            return Math.floor(interval) + " hours ago";
+        }
+        interval = seconds / 60;
+        if (interval > 1) {
+            return Math.floor(interval) + " minutes ago";
+        }
+        return Math.floor(seconds) + " seconds";
+    }
+</script>
+{{ end }}

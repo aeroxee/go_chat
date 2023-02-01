@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ block "title" . }}{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+</head>
+<body>
+
+{{ block "style" . }}{{ end }}
+
+{{ block "content" . }}{{ end }}
+
+<script src="https://momentjs.com/downloads/moment.min.js"></script>
+<script src="https://momentjs.com/downloads/moment-with-locales.min.js"></script>
+<script src="https://momentjs.com/downloads/moment-timezone-with-data-10-year-range.min.js"></script>
+<script src="/static/js/bootstrap.bundle.min.js"></script>
+<script>
+    moment().format();
+</script>
+{{ block "script" . }}{{ end }}
+
+</body>
+</html>
